@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Syria Map Demo - Native Neon Points</title>
+
+    <script src='https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js'></script>
+    <link href='https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css' rel='stylesheet' />
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #050a14;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+
+        /* Overlay Panel */
+        .overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(5, 10, 20, 0.9);
+            color: #62E5FF;
+            padding: 20px;
+            border: 1px solid #62E5FF;
+            border-radius: 4px;
+            box-shadow: 0 0 20px rgba(98, 229, 255, 0.2);
+            z-index: 1;
+            backdrop-filter: blur(10px);
+            width: 280px;
+        }
+
+        h1 {
+            margin: 0 0 15px 0;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-bottom: 1px solid rgba(98, 229, 255, 0.3);
+            padding-bottom: 10px;
+            text-shadow: 0 0 10px rgba(98, 229, 255, 0.5);
+        }
+
+        .legend-item {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            font-size: 13px;
+            color: #e0e0e0;
+        }
+
+        .line-neon {
+            width: 25px;
+            height: 3px;
+            background: #62E5FF;
+            box-shadow: 0 0 8px #62E5FF;
+            margin-right: 12px;
+            display: inline-block;
+            border-radius: 2px;
+        }
+
+        /* Stylizacja dla małych kropek w legendzie (Native Points) */
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 12px;
+            display: inline-block;
+        }
+
+        .dot-blue-static {
+            background-color: #00f3ff;
+            box-shadow: 0 0 8px #00f3ff;
+        }
+
+        .dot-gold-static {
+            background-color: #ffd700;
+            box-shadow: 0 0 8px #ffd700;
+        }
+
+        /* --- POPUP STYLING (Blue for Wells, Gold for Monuments) --- */
+
+        .maplibregl-popup-content {
+            background: rgba(8, 12, 20, 0.98);
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            padding: 15px;
+            min-width: 200px;
+            border: 1px solid #62E5FF;
+            box-shadow: 0 0 25px rgba(98, 229, 255, 0.4);
+        }
+
+        .maplibregl-popup-close-button {
+            color: #62E5FF;
+            font-size: 18px;
+        }
+
+        .maplibregl-popup-tip {
+            border-top-color: #62E5FF;
+        }
+
+        .popup-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: block;
+            text-transform: uppercase;
+            color: #62E5FF;
+            text-shadow: 0 0 5px rgba(98, 229, 255, 0.6);
+        }
+
+        .popup-detail {
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        /* Gold Popup Overrides */
+        .gold-popup .maplibregl-popup-content {
+            border: 1px solid #ffd700;
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.4);
+        }
+
+        .gold-popup .maplibregl-popup-close-button {
+            color: #ffd700;
+        }
+
+        .gold-popup .maplibregl-popup-tip {
+            border-top-color: #ffd700;
+        }
+
+        .gold-popup .popup-title {
+            color: #ffd700;
+            text-shadow: 0 0 5px rgba(255, 215, 0, 0.6);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="overlay">
+        <h1>SYRIA: MONITORING SYSTEM v.5.0 HQ</h1>
+        <div class="legend-item"><span class="line-neon"></span> Borders (Neon Glow)</div>
+        <div class="legend-item">
+            <div class="legend-dot dot-blue-static"></div> Water Resources (Native Points)
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot dot-gold-static"></div> Heritage Sites (Native Points)
+        </div>
+        <div style="margin-top: 15px; font-size: 11px; color: #888; border-top: 1px solid #333; padding-top: 10px;">
+            STATUS: ONLINE (MapLibre GL Points)<br>
+            MODE: NEON GLOW
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script>
+        const map = new maplibregl.Map({
+            container: 'map',
+            style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+            center: [39.0, 35.0],
+            zoom: 4,
+            pitch: 0
+        });
+
+        // Data points (English descriptions)
+        const wellsData = {
+            'type': 'FeatureCollection',
+            'features': [
+                { 'type': 'Feature', 'geometry': { 'type': 'Point', 'coordinates': [36.71, 34.73] }, 'properties': { 'title': 'Homs Well-1', 'val': '150m' } },
+                { 'type': 'Feature', 'geometry': { 'type': 'Point', 'coordinates': [37.15, 36.20] }, 'properties': { 'title': 'Aleppo North Intake', 'val': '210m' } },
+                { 'type': 'Feature', 'geometry': { 'type': 'Point', 'coordinates': [38.30, 34.55] }, 'properties': { 'title': 'Palmyra Reserve', 'val': '300m' } },
+                { 'type': 'Feature', 'geometry': { 'type': 'Point', 'coordinates': [40.10, 35.95] }, 'properties': { 'title': 'Ar-Raqqa Well', 'val': '120m' } },
+                { 'type': 'Feature', 'geometry': { 'type': 'Point', 'coordinates': [36.30, 33.50] }, 'properties': { 'title': 'Damascus East Resources', 'val': '180m' } }
+            ]
+        };
+
+        const monumentsData = {
+            'type': 'FeatureCollection',
+            'features': [
+                { 'type': 'Feature', 'geometry': { 'type': 'Point', 'coordinates': [38.26, 34.56] }, 'properties': { 'title': 'Palmyra Ruins', 'val': 'Ancient' } },
+                { 'type': 'Feature', 'geometry': { 'type': 'Point', 'coordinates': [36.29, 33.51] }, 'properties': { 'title': 'Umayyad Mosque', 'val': '8th Century' } },
+                { 'type': 'Feature', 'geometry': { 'type': 'Point', 'coordinates': [37.16, 36.19] }, 'properties': { 'title': 'Aleppo Citadel', 'val': 'Medieval' } },
+                { 'type': 'Feature', 'geometry': { 'type': 'Point', 'coordinates': [36.30, 34.70] }, 'properties': { 'title': 'Krak des Chevaliers', 'val': 'Crusades Era' } },
+                { 'type': 'Feature', 'geometry': { 'type': 'Point', 'coordinates': [36.56, 35.61] }, 'properties': { 'title': 'Ugarit', 'val': 'Bronze Age' } }
+            ]
+        };
+
+        map.on('load', () => {
+
+            // --- Boundaries (High Resolution & Neon Effect) ---
+            const borderUrl = 'https://raw.githubusercontent.com/wmgeolab/geoBoundaries/main/releaseData/gbOpen/SYR/ADM0/geoBoundaries-SYR-ADM0.geojson';
+
+            map.addSource('syria-high-res', { 'type': 'geojson', 'data': borderUrl });
+
+            // Neon Layers (Glow, Tube, Core) - Unchanged
+            map.addLayer({ 'id': 'syria-neon-glow-outer', 'type': 'line', 'source': 'syria-high-res', 'paint': { 'line-color': '#62E5FF', 'line-width': 18, 'line-opacity': 0.3, 'line-blur': 10 } });
+            map.addLayer({ 'id': 'syria-neon-glow-inner', 'type': 'line', 'source': 'syria-high-res', 'paint': { 'line-color': '#62E5FF', 'line-width': 6, 'line-opacity': 0.6, 'line-blur': 3 } });
+            map.addLayer({ 'id': 'syria-neon-core', 'type': 'line', 'source': 'syria-high-res', 'paint': { 'line-color': '#E0FFFF', 'line-width': 2, 'line-opacity': 1, 'line-blur': 0 } });
+            map.addLayer({
+                'id': 'syria-fill', 'type': 'fill', 'source': 'syria-high-res',
+                'paint': { 'fill-color': '#62E5FF', 'fill-opacity': 0.03 },
+                'beforeId': 'syria-neon-glow-outer'
+            });
+
+            // -----------------------------------------------------------------
+            // --- NOWOŚĆ: NATIVE CIRCLE POINTS (Zamiast znaczników HTML) ---
+            // -----------------------------------------------------------------
+
+            map.addSource('wells', { 'type': 'geojson', 'data': wellsData });
+            map.addSource('monuments', { 'type': 'geojson', 'data': monumentsData });
+
+            // 1. WELLS (Blue Neon Points)
+            // Glow layer (soft, large circle)
+            map.addLayer({
+                'id': 'wells-glow', 'type': 'circle', 'source': 'wells',
+                'paint': { 'circle-radius': 12, 'circle-color': '#00f3ff', 'circle-opacity': 0.4, 'circle-blur': 1.0 }
+            });
+            // Core layer (sharp, small circle)
+            map.addLayer({
+                'id': 'wells-point', 'type': 'circle', 'source': 'wells',
+                'paint': { 'circle-radius': 4, 'circle-color': '#00f3ff', 'circle-stroke-width': 1, 'circle-stroke-color': '#fff' }
+            });
+
+            // 2. MONUMENTS (Gold Neon Points)
+            // Glow layer (soft, large circle)
+            map.addLayer({
+                'id': 'monuments-glow', 'type': 'circle', 'source': 'monuments',
+                'paint': { 'circle-radius': 12, 'circle-color': '#ffd700', 'circle-opacity': 0.4, 'circle-blur': 1.0 }
+            });
+            // Core layer (sharp, small circle)
+            map.addLayer({
+                'id': 'monuments-point', 'type': 'circle', 'source': 'monuments',
+                'paint': { 'circle-radius': 4, 'circle-color': '#ffd700', 'circle-stroke-width': 1, 'circle-stroke-color': '#000' }
+            });
+
+            // --- INTERACTIVITY: POPUPS ---
+
+            // Wells Popups (Blue/Default Style)
+            map.on('click', 'wells-point', (e) => {
+                const coordinates = e.features[0].geometry.coordinates.slice();
+                const props = e.features[0].properties;
+                new maplibregl.Popup() // Uses default (blue) style
+                    .setLngLat(coordinates)
+                    .setHTML(`<span class="popup-title">${props.title}</span><span class="popup-detail">Depth: ${props.val}</span>`)
+                    .addTo(map);
+            });
+
+            // Monuments Popups (Gold Style)
+            map.on('click', 'monuments-point', (e) => {
+                const coordinates = e.features[0].geometry.coordinates.slice();
+                const props = e.features[0].properties;
+                new maplibregl.Popup({ className: 'gold-popup' }) // Apply custom gold class
+                    .setLngLat(coordinates)
+                    .setHTML(`<span class="popup-title">${props.title}</span><span class="popup-detail">Era: ${props.val}</span>`)
+                    .addTo(map);
+            });
+
+            // Optional: Change cursor on hover
+            map.on('mouseenter', 'wells-point', () => map.getCanvas().style.cursor = 'pointer');
+            map.on('mouseleave', 'wells-point', () => map.getCanvas().style.cursor = '');
+            map.on('mouseenter', 'monuments-point', () => map.getCanvas().style.cursor = 'pointer');
+            map.on('mouseleave', 'monuments-point', () => map.getCanvas().style.cursor = '');
+
+            // --- Initial Map Fly-To ---
+            setTimeout(() => {
+                map.fitBounds([[35.1, 32.3], [42.4, 37.4]], {
+                    padding: 60,
+                    speed: 0.5,
+                    curve: 1
+                });
+            }, 1200);
+        });
+    </script>
+
+</body>
+
+</html>
